@@ -68,6 +68,7 @@ jobs:
         run: >-
           ../src/configure -C --disable-install-doc
           --prefix="${HOME}/ruby"
+          --disable-install-bin
           --enable-install-static-library
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
           --with-static-linked-ext

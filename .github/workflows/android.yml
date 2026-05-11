@@ -82,10 +82,11 @@ jobs:
         env:
           CFLAGS: "-std=gnu99 -O3 -flto"
           LDFLAGS: "-flto"
+          LIBDIR: "${HOME}/ruby/lib"
         run: >-
           ../src/configure -C --disable-install-doc
+          --disable-install-bin
           --prefix="${HOME}/ruby"
-          --with-rubylibprefix="${HOME}/ruby/lib/ruby"
           --host=${{ matrix.abi }}${{ matrix.api_level }}
           --enable-install-static-library
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
