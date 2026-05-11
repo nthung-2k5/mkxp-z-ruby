@@ -79,7 +79,7 @@ jobs:
           LDFLAGS: "-flto"
         run: >-
           ../src/configure
-          --host=${{ matrix.abi }}${{ matrix.api_level }}-clang
+          --host=${{ matrix.abi }}${{ matrix.api_level }}
           --enable-install-static-library
           --disable-install-doc
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
