@@ -65,11 +65,7 @@ jobs:
         with:
           path: src/.downloaded-cache
           key: downloaded-cache
-      - name: Fixed world writable dirs
-        run: |
-          chmod -v go-w $HOME $HOME/.config
-          sudo chmod -R go-w /usr/share
-          sudo bash -c 'IFS=:; for d in '"$PATH"'; do chmod -v go-w $d; done' || :
+      - run: echo "libdir=\"${HOME}/ruby/lib\"" >> $GITHUB_ENV
       - name: Set up Android NDK
         run: |
           echo "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
@@ -78,8 +74,6 @@ jobs:
           clang --version
       - run: ./autogen.sh
         working-directory: src
-        env:
-          LIBDIR: "${HOME}/ruby/lib"
       - name: Run configure
         env:
           CFLAGS: "-std=gnu99 -O3 -flto"
