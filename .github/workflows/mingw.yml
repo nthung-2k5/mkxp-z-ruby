@@ -107,17 +107,14 @@ jobs:
           --without-gmp
           --build=$CHOST --host=$CHOST --target=$CHOST
 
-      - run: make
+      - run: make -j8
       - name: make install
         run: |
           make install-nodoc
-      - name: Create artifacts
-        run: |
-          zip -r ruby-mingw-${{ matrix.abi }}.zip ${HOME}/ruby
       - uses: actions/upload-artifact@v4
         with:
-          name: ruby-mingw-${{ matrix.abi }}.zip
-          path: ruby-mingw-${{ matrix.abi }}.zip
+          name: ruby-mingw
+          path: ~/ruby
 
 defaults:
   run:

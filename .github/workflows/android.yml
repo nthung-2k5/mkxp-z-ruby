@@ -93,18 +93,17 @@ jobs:
           --with-static-linked-ext
           --disable-rubygems
           --without-gmp
-      - run: make
+      - run: make -j8
       - name: make install
         run: |
           make install-nodoc
       - name: Create artifacts
         run: |
           cp -r /var/lib/gems/3.1.0/ ${HOME}/ruby/lib/ruby/gems/3.1.0/
-          zip -r ruby-android-${{ matrix.abi }}.zip ${HOME}/ruby
       - uses: actions/upload-artifact@v4
         with:
-          name: ruby-android-${{ matrix.abi }}.zip
-          path: ruby-android-${{ matrix.abi }}.zip
+          name: ruby-android-${{ matrix.abi }}
+          path: ~/ruby
 
 defaults:
   run:

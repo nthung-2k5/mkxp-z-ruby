@@ -74,17 +74,14 @@ jobs:
           --disable-rubygems
           --without-gmp
 
-      - run: make
+      - run: make -j8
       - name: make install
         run: |
           make install-nodoc
-      - name: Create artifacts
-        run: |
-          zip -r ruby-linux.zip ${HOME}/ruby
       - uses: actions/upload-artifact@v4
         with:
-          name: ruby-linux.zip
-          path: ruby-linux.zip
+          name: ruby-linux
+          path: ~/ruby
 
 defaults:
   run:
