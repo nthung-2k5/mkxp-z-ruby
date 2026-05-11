@@ -1,0 +1,104 @@
+name: Android
+on:
+  push:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+      - '**.rdoc'
+  pull_request:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+      - '**.rdoc'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }} / ${{ startsWith(github.event_name, 'pull') && github.ref_name || github.sha }}
+  cancel-in-progress: ${{ startsWith(github.event_name, 'pull') }}
+
+jobs:
+  make:
+    strategy:
+      matrix:
+        include:
+          - abi: armeabi-v7a
+            api_level: 21
+          - abi: arm64-v8a
+            api_level: 21
+          - abi: x86
+            api_level: 21
+          - abi: x86_64
+            api_level: 21
+      fail-fast: false
+    env:
+      GITPULLOPTIONS: --no-tags origin ${{github.ref}}
+    runs-on: ubuntu-latest
+    if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
+    steps:
+      - run: mkdir build
+        working-directory:
+      - name: Set ENV
+        run: |
+          echo "GNUMAKEFLAGS=-j$((1 + $(nproc --all)))" >> $GITHUB_ENV
+      - name: Install libraries
+        run: |
+          set -x
+          sudo apt-get update -q || :
+          sudo apt-get install --no-install-recommends -q -y \
+            build-essential \
+            libssl-dev libyaml-dev \
+            zlib1g-dev libncurses5-dev libffi-dev \
+            bison autoconf ruby
+      - name: git config
+        run: |
+          git config --global advice.detachedHead 0
+          git config --global init.defaultBranch garbage
+      - uses: actions/checkout@v3
+        with:
+          path: src
+      - uses: actions/cache@v3
+        with:
+          path: src/.downloaded-cache
+          key: downloaded-cache
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+          add-to-path: true
+      - run: ./autogen.sh
+        working-directory: src
+      - name: Run configure
+        env:
+          CFLAGS: "-std=gnu99 -flto"
+          LDFLAGS: "-flto"
+        run: >-
+          ../src/configure
+          --host=${{ matrix.abi }}-linux-android
+          --with-android-ndk=$ANDROID_NDK_HOME
+          --with-android-api=${{ matrix.api_level }}
+          --enable-install-static-library
+          --disable-install-doc
+          --with-out-ext=openssl,readline,dbm,gdbm,win32ole
+          --with-static-linked-ext
+          --disable-rubygems
+          --without-gmp
+      - run: make incs
+      - run: make
+        timeout-minutes: 30
+      - uses: k0kubun/action-slack@v2.0.0
+        with:
+          payload: |
+            {
+              "ci": "GitHub Actions",
+              "env": "Android / ${{ matrix.abi }} (API ${{ matrix.api_level }})",
+              "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "commit": "${{ github.sha }}",
+              "branch": "${{ github.ref }}".split('/').reverse()[0]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SIMPLER_ALERTS_URL }}
+        if: ${{ failure() && github.event_name == 'push' }}
+
+defaults:
+  run:
+    working-directory: build

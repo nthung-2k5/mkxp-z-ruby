@@ -10,6 +10,7 @@ on:
       - 'doc/**'
       - '**.md'
       - '**.rdoc'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }} / ${{ startsWith(github.event_name, 'pull') && github.ref_name || github.sha }}
@@ -23,9 +24,12 @@ jobs:
           - vs: 2019
             os: windows-2019
             vcvars: '"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"'
-          # - vs: 2022
-          #   os: windows-2022
-          #   vcvars: '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"'
+          - vs: 2022
+            os: windows-2022
+            vcvars: '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"'
+          - vs: 2026
+            os: windows-2025-vs2026
+            vcvars: '"C:\Program Files\Microsoft Visual Studio\2026\Enterprise\VC\Auxiliary\Build\vcvars64.bat"'
       fail-fast: false
     runs-on: ${{ matrix.os }}
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
@@ -57,7 +61,7 @@ jobs:
             ${{ runner.os }}-vcpkg-download-
       - name: Install libraries with vcpkg
         run: |
-          vcpkg --triplet x64-windows install readline zlib
+          vcpkg --triplet x64-windows install zlib
       - uses: actions/cache@v3
         with:
           path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
@@ -69,7 +73,6 @@ jobs:
         run: |
           # Using Choco-Install for retries, but it doesn't detect failures properly
           # if you pass multiple package names in a single command.
-          Choco-Install -PackageName openssl
           Choco-Install -PackageName winflexbison3
         shell: pwsh
       - name: git config
@@ -100,9 +103,13 @@ jobs:
       - name: Configure
         run: >-
           ../src/win32/configure.bat --disable-install-doc
+          --enable-install-static-library
+          --with-out-ext=openssl,readline,dbm,gdbm,win32ole
+          --with-static-linked-ext
+          --disable-rubygems
+          --without-gmp
           --enable-bundled-libffi
           --with-opt-dir=C:/vcpkg/installed/x64-windows
-          --with-openssl-dir="C:/Program Files/OpenSSL-Win64"
       - run: nmake incs
       - run: nmake extract-extlibs
       - run: nmake
