@@ -65,7 +65,10 @@ jobs:
         with:
           path: src/.downloaded-cache
           key: downloaded-cache
-      - run: echo "libdir=\"${HOME}/ruby/lib\"" >> $GITHUB_ENV
+      - run: export libdir="${HOME}/ruby/lib"
+      - name: Change permissions
+        run: |
+          sudo chmod -R 777 /var/lib
       - name: Set up Android NDK
         run: |
           echo "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
@@ -74,6 +77,8 @@ jobs:
           clang --version
       - run: ./autogen.sh
         working-directory: src
+        env:
+          LIBDIR: "${HOME}/ruby/lib"
       - name: Run configure
         env:
           CFLAGS: "-std=gnu99 -O3 -flto"
