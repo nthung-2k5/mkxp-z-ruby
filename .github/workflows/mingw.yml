@@ -20,8 +20,6 @@ jobs:
   make:
     runs-on: windows-2022
     env:
-      MSYSTEM: ${{ matrix.msystem }}
-      MSYS2_ARCH: x86_64
       CHOST: "x86_64-w64-mingw32"
       CFLAGS:   "-march=x86-64 -mtune=generic -O3 -pipe -fstack-protector-strong -std=gnu99 -flto"
       CXXFLAGS: "-march=x86-64 -mtune=generic -O3 -pipe"
@@ -29,12 +27,6 @@ jobs:
       LDFLAGS:  "-flto -pipe -fstack-protector-strong"
       UPDATE_UNICODE: "UNICODE_FILES=. UNICODE_PROPERTY_FILES=. UNICODE_AUXILIARY_FILES=. UNICODE_EMOJI_FILES=."
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
-    strategy:
-      matrix:
-        include:
-          - msystem: "UCRT64"
-            base_ruby: head
-      fail-fast: false
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
     steps:
       - run: mkdir build
@@ -45,20 +37,24 @@ jobs:
           git config --global core.eol lf
           git config --global advice.detachedHead 0
           git config --global init.defaultBranch garbage
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: src
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: src/.downloaded-cache
           key: downloaded-cache
-      - name: Set up Ruby & MSYS2
-        uses: ruby/setup-ruby@v1
+      - name: setup MSYS2
+        uses: msys2/setup-msys2@v2
         with:
-          ruby-version: ${{ matrix.base_ruby }}
+          msystem: UCRT64
+          release: false
+          update: true
+          install: mingw-w64-ucrt-x86_64-libyaml mingw-w64-ucrt-x86_64-libffi mingw-w64-ucrt-x86_64-ruby
       - name: set env
         run: |
           echo "GNUMAKEFLAGS=-j$((2 * NUMBER_OF_PROCESSORS))" >> $GITHUB_ENV
+        shell: msys2 {0}
 
       - name: where check
         run: |
@@ -69,6 +65,7 @@ jobs:
             echo '##['endgroup']'
           done
           $result
+        shell: msys2 {0}
 
       - name: version check
         run: |
@@ -81,11 +78,13 @@ jobs:
             echo '##['endgroup']'
           done
           $result
+        shell: msys2 {0}
 
       - name: autogen
         run: |
           ./autogen.sh
         working-directory: src
+        shell: msys2 {0}
 
       - name: configure
         run: >
@@ -96,11 +95,14 @@ jobs:
           --disable-rubygems
           --without-gmp
           --build=$CHOST --host=$CHOST --target=$CHOST
+        shell: msys2 {0}
 
       - run: make
+        shell: msys2 {0}
       - name: make install
         run: |
           make install-nodoc
+        shell: msys2 {0}
 
 defaults:
   run:

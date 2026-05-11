@@ -58,13 +58,18 @@ jobs:
         run: |
           git config --global advice.detachedHead 0
           git config --global init.defaultBranch garbage
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: src
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: src/.downloaded-cache
           key: downloaded-cache
+      - name: Fixed world writable dirs
+        run: |
+          chmod -v go-w $HOME $HOME/.config
+          sudo chmod -R go-w /usr/share
+          sudo bash -c 'IFS=:; for d in '"$PATH"'; do chmod -v go-w $d; done' || :
       - name: Set up Android NDK
         run: |
           echo "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
@@ -78,16 +83,16 @@ jobs:
           CFLAGS: "-std=gnu99 -O3 -flto"
           LDFLAGS: "-flto"
         run: >-
-          ../src/configure
+          ../src/configure -C --disable-install-doc
           --prefix="${HOME}/ruby"
+          --with-rubylibprefix="${HOME}/ruby/lib/ruby"
           --host=${{ matrix.abi }}${{ matrix.api_level }}
           --enable-install-static-library
-          --disable-install-doc
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
           --with-static-linked-ext
           --disable-rubygems
           --without-gmp
-      - run: make -j4
+      - run: make
       - name: make install
         run: |
           make install-nodoc
