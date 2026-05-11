@@ -1,15 +1,15 @@
 name: Ubuntu
 on:
-  # push:
-  #   paths-ignore:
-  #     - 'doc/**'
-  #     - '**.md'
-  #     - '**.rdoc'
-  # pull_request:
-  #   paths-ignore:
-  #     - 'doc/**'
-  #     - '**.md'
-  #     - '**.rdoc'
+  push:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+      - '**.rdoc'
+  pull_request:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+      - '**.rdoc'
   workflow_dispatch:
 
 concurrency:
@@ -78,6 +78,13 @@ jobs:
       - name: make install
         run: |
           make install-nodoc
+      - name: Create artifacts
+        run: |
+          zip -r ruby-linux.zip ${HOME}/ruby
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruby-linux.zip
+          path: ruby-linux.zip
 
 defaults:
   run:

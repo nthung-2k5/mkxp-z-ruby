@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
     runs-on: ${{ matrix.os }}
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
-    name: VisualStudio ${{ matrix.vs }}
+    name: Visual Studio ${{ matrix.vs }}
     env:
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
       VCVARS: ${{ matrix.vcvars }}
@@ -55,10 +55,6 @@ jobs:
             ${{ runner.os }}-chocolatey-${{ matrix.os }}-
             ${{ runner.os }}-chocolatey-
       - name: Install libraries with chocolatey
-        # run: |
-        #   # Using Choco-Install for retries, but it doesn't detect failures properly
-        #   # if you pass multiple package names in a single command.
-        #   Choco-Install -PackageName winflexbison3
         uses: crazy-max/ghaction-chocolatey@v4
         with:
           args: install winflexbison3
