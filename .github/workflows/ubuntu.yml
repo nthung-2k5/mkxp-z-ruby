@@ -55,6 +55,9 @@ jobs:
           chmod -v go-w $HOME $HOME/.config
           sudo chmod -R go-w /usr/share
           sudo bash -c 'IFS=:; for d in '"$PATH"'; do chmod -v go-w $d; done' || :
+      - name: set env
+        run: |
+          echo "GNUMAKEFLAGS=-j$((2 * NUMBER_OF_PROCESSORS))" >> $GITHUB_ENV
       - run: ./autogen.sh
         working-directory: src
       - name: Run configure
@@ -64,6 +67,7 @@ jobs:
           LDFLAGS: "-flto"
         run: >-
           ../src/configure -C --disable-install-doc
+          --prefix="${HOME}/ruby"
           --enable-install-static-library
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
           --with-static-linked-ext

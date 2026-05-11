@@ -1,15 +1,15 @@
 name: macOS
 on:
-  push:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - '**.rdoc'
-  pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - '**.rdoc'
+  # push:
+  #   paths-ignore:
+  #     - 'doc/**'
+  #     - '**.md'
+  #     - '**.rdoc'
+  # pull_request:
+  #   paths-ignore:
+  #     - 'doc/**'
+  #     - '**.md'
+  #     - '**.rdoc'
   workflow_dispatch:
 
 concurrency:
@@ -39,7 +39,7 @@ jobs:
       - name: Install libraries
         run: |
           brew upgrade
-          brew install gmp libffi zlib autoconf automake libtool
+          brew install libffi zlib autoconf automake libtool
         working-directory: src
       - name: Set ENV
         run: |

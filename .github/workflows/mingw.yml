@@ -16,13 +16,9 @@ concurrency:
   group: ${{ github.workflow }} / ${{ startsWith(github.event_name, 'pull') && github.ref_name || github.sha }}
   cancel-in-progress: ${{ startsWith(github.event_name, 'pull') }}
 
-# Notes:
-# Actions console encoding causes issues, see test-all & test-spec steps
-#
 jobs:
   make:
     runs-on: windows-2022
-    name: ${{ github.workflow }} (${{ matrix.msystem }})
     env:
       MSYSTEM: ${{ matrix.msystem }}
       MSYS2_ARCH: x86_64
@@ -36,10 +32,8 @@ jobs:
     strategy:
       matrix:
         include:
-          # To mitigate flakiness of MinGW CI, we test only one runtime that newer MSYS2 uses.
           - msystem: "UCRT64"
             base_ruby: head
-            test_task: [ "check" ] # to make job names consistent
       fail-fast: false
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
     steps:
@@ -65,12 +59,11 @@ jobs:
       - name: set env
         run: |
           echo "GNUMAKEFLAGS=-j$((2 * NUMBER_OF_PROCESSORS))" >> $GITHUB_ENV
-          echo "TEST_JOBS=$((15 * NUMBER_OF_PROCESSORS / 10))" >> $GITHUB_ENV
 
       - name: where check
         run: |
           result=true
-          for e in gcc.exe ragel.exe make.exe bison.exe; do
+          for e in gcc.exe ragel.exe make.exe bison.exe nm.exe; do
             echo '##['group']'$'\033[93m'$e$'\033[m'
             where $e || result=false
             echo '##['endgroup']'
@@ -81,7 +74,7 @@ jobs:
         run: |
           # show version
           result=true
-          for e in gcc ragel make bison; do
+          for e in gcc ragel make bison nm; do
             case "$e" in *" "*) ;; *) e="$e --version";; esac
             echo '##['group']'$'\033[93m'$e$'\033[m'
             $e || result=false
@@ -96,7 +89,7 @@ jobs:
 
       - name: configure
         run: >
-          ../src/configure --disable-install-doc --prefix=/.
+          ../src/configure --disable-install-doc --prefix="${HOME}/ruby"
           --enable-install-static-library
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
           --with-static-linked-ext
@@ -104,7 +97,7 @@ jobs:
           --without-gmp
           --build=$CHOST --host=$CHOST --target=$CHOST
 
-      - run: make -j4
+      - run: make
       - name: make install
         run: |
           make install-nodoc

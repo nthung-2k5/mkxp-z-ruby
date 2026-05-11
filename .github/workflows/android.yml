@@ -23,16 +23,16 @@ jobs:
         include:
           - abi: armv7a-linux-androideabi
             name: armeabi-v7a
-            api_level: 22
+            api_level: 26
           - abi: aarch64-linux-android
             name: arm64-v8a
-            api_level: 22
+            api_level: 26
           - abi: i686-linux-android
             name: x86
-            api_level: 22
+            api_level: 26
           - abi: x86_64-linux-android
             name: x86_64
-            api_level: 22
+            api_level: 26
       fail-fast: false
     env:
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
@@ -40,7 +40,7 @@ jobs:
     name: ${{ matrix.name }}
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
     steps:
-      - run: mkdir build
+      - run: mkdir build install
         working-directory:
       - name: Set ENV
         run: |
@@ -79,6 +79,7 @@ jobs:
           LDFLAGS: "-flto"
         run: >-
           ../src/configure
+          --prefix="${HOME}/ruby"
           --host=${{ matrix.abi }}${{ matrix.api_level }}
           --enable-install-static-library
           --disable-install-doc
@@ -89,7 +90,7 @@ jobs:
       - run: make -j4
       - name: make install
         run: |
-          make DESTDIR=../install install-nodoc
+          make install-nodoc
 
 defaults:
   run:
