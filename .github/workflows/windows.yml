@@ -1,15 +1,15 @@
 name: Windows
 on:
-  push:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - '**.rdoc'
-  pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - '**.rdoc'
+  # push:
+  #   paths-ignore:
+  #     - 'doc/**'
+  #     - '**.md'
+  #     - '**.rdoc'
+  # pull_request:
+  #   paths-ignore:
+  #     - 'doc/**'
+  #     - '**.md'
+  #     - '**.rdoc'
   workflow_dispatch:
 
 concurrency:
@@ -79,10 +79,14 @@ jobs:
         run: |
           call %VCVARS% 10.0.22621.0
           ../src/win32/configure.bat --disable-install-doc --disable-install-bin --enable-install-static-library --with-out-ext=openssl,readline,dbm,gdbm,win32ole --with-static-linked-ext --disable-rubygems --without-gmp --enable-bundled-libffi --with-opt-dir=C:/vcpkg/installed/x64-windows
-      - run: nmake
+      - run: |
+          call %VCVARS% 10.0.22621.0
+          nmake
         env:
           YACC: win_bison
-      - run: nmake install
+      - run: |
+          call %VCVARS% 10.0.22621.0
+          nmake install
 
 defaults:
   run:

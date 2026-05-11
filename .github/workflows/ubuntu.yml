@@ -1,15 +1,15 @@
 name: Ubuntu
 on:
-  push:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - '**.rdoc'
-  pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - '**.rdoc'
+  # push:
+  #   paths-ignore:
+  #     - 'doc/**'
+  #     - '**.md'
+  #     - '**.rdoc'
+  # pull_request:
+  #   paths-ignore:
+  #     - 'doc/**'
+  #     - '**.md'
+  #     - '**.rdoc'
   workflow_dispatch:
 
 concurrency:
@@ -20,7 +20,6 @@ jobs:
   make:
     env:
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
-      RUBY_DEBUG: ci
     runs-on: ubuntu-24.04
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
     steps:

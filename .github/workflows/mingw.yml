@@ -1,15 +1,15 @@
 name: MinGW
 on:
-  push:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - '**.rdoc'
-  pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - '**.rdoc'
+  # push:
+  #   paths-ignore:
+  #     - 'doc/**'
+  #     - '**.md'
+  #     - '**.rdoc'
+  # pull_request:
+  #   paths-ignore:
+  #     - 'doc/**'
+  #     - '**.md'
+  #     - '**.rdoc'
   workflow_dispatch:
 
 concurrency:
@@ -20,6 +20,8 @@ jobs:
   make:
     runs-on: windows-2022
     env:
+      MSYSTEM: UCRT64
+      MSYS2_ARCH: x86_64
       CHOST: "x86_64-w64-mingw32"
       CFLAGS:   "-march=x86-64 -mtune=generic -O3 -pipe -fstack-protector-strong -std=gnu99 -flto"
       CXXFLAGS: "-march=x86-64 -mtune=generic -O3 -pipe"
@@ -44,28 +46,38 @@ jobs:
         with:
           path: src/.downloaded-cache
           key: downloaded-cache
-      - name: setup MSYS2
-        uses: msys2/setup-msys2@v2
+      # - name: setup MSYS2
+      #   uses: msys2/setup-msys2@v2
+      #   with:
+      #     msystem: UCRT64
+      #     release: false
+      #     update: true
+      #     install: >-
+      #       mingw-w64-ucrt-x86_64-libyaml
+      #       mingw-w64-ucrt-x86_64-libffi
+      #       mingw-w64-ucrt-x86_64-ragel
+      #       mingw-w64-ucrt-x86_64-ruby
+      #       mingw-w64-ucrt-x86_64-gcc
+      #       mingw-w64-ucrt-x86_64-make
+      #       mingw-w64-ucrt-x86_64-bison
+      #       mingw-w64-ucrt-x86_64-nm
+      - name: setup Ruby and MSYS2
+        uses: ruby/setup-ruby@v1
         with:
-          msystem: UCRT64
-          release: false
-          update: true
-          install: mingw-w64-ucrt-x86_64-libyaml mingw-w64-ucrt-x86_64-libffi mingw-w64-ucrt-x86_64-ruby
+          ruby-version: '3.1.3'
       - name: set env
         run: |
           echo "GNUMAKEFLAGS=-j$((2 * NUMBER_OF_PROCESSORS))" >> $GITHUB_ENV
-        shell: msys2 {0}
 
       - name: where check
         run: |
           result=true
-          for e in gcc ragel make bison nm; do
+          for e in gcc.exe ragel.exe make.exe bison.exe nm.exe; do
             echo '##['group']'$'\033[93m'$e$'\033[m'
             where $e || result=false
             echo '##['endgroup']'
           done
           $result
-        shell: msys2 {0}
 
       - name: version check
         run: |
@@ -78,13 +90,11 @@ jobs:
             echo '##['endgroup']'
           done
           $result
-        shell: msys2 {0}
 
       - name: autogen
         run: |
           ./autogen.sh
         working-directory: src
-        shell: msys2 {0}
 
       - name: configure
         run: >
@@ -96,14 +106,11 @@ jobs:
           --disable-rubygems
           --without-gmp
           --build=$CHOST --host=$CHOST --target=$CHOST
-        shell: msys2 {0}
 
       - run: make
-        shell: msys2 {0}
       - name: make install
         run: |
           make install-nodoc
-        shell: msys2 {0}
 
 defaults:
   run:
