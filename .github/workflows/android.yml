@@ -21,18 +21,23 @@ jobs:
     strategy:
       matrix:
         include:
-          - abi: armeabi-v7a
-            api_level: 21
-          - abi: arm64-v8a
-            api_level: 21
-          - abi: x86
-            api_level: 21
-          - abi: x86_64
-            api_level: 21
+          - abi: armv7a-linux-androideabi
+            name: armeabi-v7a
+            api_level: 22
+          - abi: aarch64-linux-android
+            name: arm64-v8a
+            api_level: 22
+          - abi: i686-linux-android
+            name: x86
+            api_level: 22
+          - abi: x86_64-linux-android
+            name: x86_64
+            api_level: 22
       fail-fast: false
     env:
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    name: ${{ matrix.name }}
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
     steps:
       - run: mkdir build
@@ -61,43 +66,30 @@ jobs:
           path: src/.downloaded-cache
           key: downloaded-cache
       - name: Set up Android NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r25c
-          add-to-path: true
+        run: |
+          echo "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
+      - name: Verify NDK Toolchain
+        run: |
+          clang --version
       - run: ./autogen.sh
         working-directory: src
       - name: Run configure
         env:
-          CFLAGS: "-std=gnu99 -flto"
+          CFLAGS: "-std=gnu99 -O3 -flto"
           LDFLAGS: "-flto"
         run: >-
           ../src/configure
-          --host=${{ matrix.abi }}-linux-androideabi
-          --with-android-ndk=$ANDROID_NDK_HOME
-          --with-android-api=${{ matrix.api_level }}
+          --host=${{ matrix.abi }}${{ matrix.api_level }}-clang
           --enable-install-static-library
           --disable-install-doc
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
           --with-static-linked-ext
           --disable-rubygems
           --without-gmp
-      - run: make incs
-      - run: make
-        timeout-minutes: 30
-      - uses: k0kubun/action-slack@v2.0.0
-        with:
-          payload: |
-            {
-              "ci": "GitHub Actions",
-              "env": "Android / ${{ matrix.abi }} (API ${{ matrix.api_level }})",
-              "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "commit": "${{ github.sha }}",
-              "branch": "${{ github.ref }}".split('/').reverse()[0]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SIMPLER_ALERTS_URL }}
-        if: ${{ failure() && github.event_name == 'push' }}
+      - run: make -j4
+      - name: make install
+        run: |
+          make DESTDIR=../install install-nodoc
 
 defaults:
   run:

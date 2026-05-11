@@ -21,15 +21,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - vs: 2019
-            os: windows-2019
-            vcvars: '"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"'
           - vs: 2022
             os: windows-2022
             vcvars: '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"'
           - vs: 2026
             os: windows-2025-vs2026
-            vcvars: '"C:\Program Files\Microsoft Visual Studio\2026\Enterprise\VC\Auxiliary\Build\vcvars64.bat"'
+            vcvars: '"C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Auxiliary\Build\vcvars64.bat"'
       fail-fast: false
     runs-on: ${{ matrix.os }}
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
@@ -112,34 +109,11 @@ jobs:
           --without-gmp
           --enable-bundled-libffi
           --with-opt-dir=C:/vcpkg/installed/x64-windows
-      - run: nmake incs
-      - run: nmake extract-extlibs
-      - run: nmake
+      - run: nmake -j4
         env:
           YACC: win_bison
-      - run: nmake test
-        timeout-minutes: 5
-      - run: nmake test-all
-        env:
-          RUBY_TESTOPTS: -j${{env.TEST_JOBS}} --job-status=normal
-        timeout-minutes: 60
-        continue-on-error: ${{ matrix.continue-on-error || false }}
-      - run: nmake test-spec
-        timeout-minutes: 10
-        continue-on-error: ${{ matrix.continue-on-error || false }}
-      - uses: k0kubun/action-slack@v2.0.0
-        with:
-          payload: |
-            {
-              "ci": "GitHub Actions",
-              "env": "VS${{ matrix.vs }} / ${{ matrix.test_task || 'check' }}",
-              "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "commit": "${{ github.sha }}",
-              "branch": "${{ github.ref }}".split('/').reverse()[0]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SIMPLER_ALERTS_URL }} # ruby-lang slack: ruby/simpler-alerts-bot
-        if: ${{ failure() && github.event_name == 'push' }}
+      - run: nmake check
+      - run: nmake install
 
 defaults:
   run:

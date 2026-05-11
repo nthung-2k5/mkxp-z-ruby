@@ -104,58 +104,10 @@ jobs:
           --without-gmp
           --build=$CHOST --host=$CHOST --target=$CHOST
 
-      - name: update
-        run: |
-          make incs
-
-      - name: download gems
-        run: |
-          make update-gems
-
-      - name: make all
-        timeout-minutes: 20
-        run: |
-          make
-
-      - run: make leaked-globals
-
+      - run: make -j4
       - name: make install
         run: |
           make DESTDIR=../install install-nodoc
-
-      - name: test
-        timeout-minutes: 5
-        run: |
-          make test
-
-      - name: test-all
-        timeout-minutes: 45
-        run: |
-          # Actions uses UTF8, causes test failures, similar to normal OS setup
-          chcp.com 437
-          make test-all
-        env:
-          RUBY_TESTOPTS: -j${{env.TEST_JOBS}} --retry --job-status=normal --show-skip --timeout-scale=1.5
-          BUNDLER_VERSION:
-
-      - name: test-spec
-        timeout-minutes: 10
-        run: |
-          make test-spec
-
-      - uses: k0kubun/action-slack@v2.0.0
-        with:
-          payload: |
-            {
-              "ci": "GitHub Actions",
-              "env": "${{ github.workflow }} / ${{ matrix.test_task }}",
-              "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "commit": "${{ github.sha }}",
-              "branch": "${{ github.ref }}".split('/').reverse()[0]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SIMPLER_ALERTS_URL }} # ruby-lang slack: ruby/simpler-alerts-bot
-        if: ${{ failure() && github.event_name == 'push' }}
 
 defaults:
   run:

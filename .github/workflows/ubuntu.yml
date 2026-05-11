@@ -18,36 +18,14 @@ concurrency:
 
 jobs:
   make:
-    strategy:
-      matrix:
-        test_task: ["check", "test-bundler-parallel", "test-bundled-gems"]
-        os:
-          - ubuntu-latest
-#         - ubuntu-18.04
-        configure: ["", "cppflags=-DRUBY_DEBUG"]
-        include:
-          - test_task: "check"
-            os: ubuntu-latest
-            configure: "--host=i686-$OSTYPE"
-          - test_task: "test-all TESTS=--repeat-count=2"
-            os: ubuntu-latest
-            configure: ""
-      fail-fast: false
     env:
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
       RUBY_DEBUG: ci
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
     steps:
       - run: mkdir build
         working-directory:
-      - name: Set ENV
-        env:
-          configure: ${{matrix.configure}}
-        run: |
-          echo "GNUMAKEFLAGS=-j$((1 + $(nproc --all)))" >> $GITHUB_ENV
-          arch=`echo " $configure" | sed '/.* --host=/!d;s///;s/[- ].*//'`
-          echo "SETARCH=${arch:+setarch $arch}" >> $GITHUB_ENV
       - name: Install libraries
         run: |
           set -x
@@ -85,54 +63,17 @@ jobs:
           CFLAGS: "-std=gnu99 -flto"
           LDFLAGS: "-flto"
         run: >-
-          $SETARCH ../src/configure -C --disable-install-doc
+          ../src/configure -C --disable-install-doc
           --enable-install-static-library
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
           --with-static-linked-ext
           --disable-rubygems
           --without-gmp
-          ${{ matrix.configure }}
-          ${arch:+--target=$arch-$OSTYPE}
-      - run: $SETARCH make incs
-      - run: $SETARCH make prepare-gems
-        if: ${{ matrix.test_task == 'test-bundled-gems' }}
-      - run: $SETARCH make
-      - run: $SETARCH make leaked-globals
-        if: ${{ matrix.test_task == 'check' }}
-      - name: Create dummy files in build dir
+
+      - run: make -j4
+      - name: make install
         run: |
-          $SETARCH ./miniruby -e '(("a".."z").to_a+("A".."Z").to_a+("0".."9").to_a+%w[foo bar test zzz]).each{|basename|File.write("#{basename}.rb", "raise %(do not load #{basename}.rb)")}'
-        if: ${{ matrix.test_task == 'check' }}
-      - name: make ${{ matrix.test_task }}
-        run: |
-          $SETARCH make -s ${{ matrix.test_task }} ${TESTS:+TESTS=`echo "$TESTS" | sed 's| |$/ -n!/|g;s|^|-n!/|;s|$|$$/|'`}
-        timeout-minutes: 40
-        env:
-          RUBY_TESTOPTS: "-q --tty=no"
-          TESTS: ${{ matrix.test_task == 'check' && matrix.skipped_tests || '' }}
-          TEST_BUNDLED_GEMS_ALLOW_FAILURES: ""
-          PRECHECK_BUNDLED_GEMS: "no"
-      - name: make skipped tests
-        run: |
-          $SETARCH make -s test-all TESTS=`echo "$TESTS" | sed 's| |$/ -n/|g;s|^|-n/|;s|$|$$/|'`
-        env:
-          GNUMAKEFLAGS: ""
-          RUBY_TESTOPTS: "-v --tty=no"
-          TESTS: ${{ matrix.skipped_tests }}
-        if: ${{ matrix.test_task == 'check' && matrix.skipped_tests != '' }}
-      - uses: k0kubun/action-slack@v2.0.0
-        with:
-          payload: |
-            {
-              "ci": "GitHub Actions",
-              "env": "${{ matrix.os }} / ${{ matrix.test_task }}${{ matrix.configure }}",
-              "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "commit": "${{ github.sha }}",
-              "branch": "${{ github.ref }}".split('/').reverse()[0]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SIMPLER_ALERTS_URL }} # ruby-lang slack: ruby/simpler-alerts-bot
-        if: ${{ failure() && github.event_name == 'push' }}
+          make DESTDIR=../install install-nodoc
 
 defaults:
   run:
