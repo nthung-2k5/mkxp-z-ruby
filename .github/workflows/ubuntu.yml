@@ -22,15 +22,15 @@ jobs:
       matrix:
         test_task: ["check", "test-bundler-parallel", "test-bundled-gems"]
         os:
-          - ubuntu-20.04
+          - ubuntu-latest
 #         - ubuntu-18.04
         configure: ["", "cppflags=-DRUBY_DEBUG"]
         include:
           - test_task: "check"
-            os: ubuntu-20.04
+            os: ubuntu-latest
             configure: "--host=i686-$OSTYPE"
           - test_task: "test-all TESTS=--repeat-count=2"
-            os: ubuntu-20.04
+            os: ubuntu-latest
             configure: ""
       fail-fast: false
     env:

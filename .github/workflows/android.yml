@@ -73,7 +73,7 @@ jobs:
           LDFLAGS: "-flto"
         run: >-
           ../src/configure
-          --host=${{ matrix.abi }}-linux-android
+          --host=${{ matrix.abi }}-linux-androideabi
           --with-android-ndk=$ANDROID_NDK_HOME
           --with-android-api=${{ matrix.api_level }}
           --enable-install-static-library
