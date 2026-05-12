@@ -31,7 +31,7 @@ jobs:
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
     steps:
-      - run: mkdir build artifact
+      - run: mkdir -p build ${{ github.workspace }}/installed
         working-directory:
       - name: git config
         run: |
@@ -98,7 +98,7 @@ jobs:
 
       - name: configure
         run: >
-          ../src/configure --disable-install-doc --prefix="./artifact"
+          ../src/configure --disable-install-doc --prefix="${{ github.workspace }}/installed"
           --disable-install-bin
           --enable-install-static-library
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
@@ -114,7 +114,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: ruby-mingw
-          path: artifact
+          path: ${{ github.workspace }}/installed
 
 defaults:
   run:
