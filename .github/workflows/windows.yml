@@ -81,16 +81,15 @@ jobs:
           nmake
         env:
           YACC: win_bison
+      - name: Copy necessary DLLs
+        run: |
+          for %%I in (C:/vcpkg/installed/x64-windows/bin/*.dll) do @(
+            if not %%~nI == readline copy /Y "%%I" "%%~nxI"
+          )
       - name: Install
         run: |
           call %VCVARS% 10.0.22621.0
           nmake install
-        continue-on-error: true
-      - name: Test cache
-        uses: actions/upload-artifact@v7
-        with:
-          name: ruby-windows
-          path: build
 defaults:
   run:
     working-directory: build
