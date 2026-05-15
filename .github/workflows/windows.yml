@@ -79,6 +79,7 @@ jobs:
           YACC: win_bison
       - name: Install
         run: nmake install
+        continue-on-error: true
       - name: Check error
         run: .\ruby.exe -I../src/lib -I".ext/x64-mswin64_140" -I. "../src/tool/runruby.rb" --extout=".ext"  -- --disable-gems -r./x64-mswin64_140-fake ../src/tool/rbinstall.rb --make="nmake" --dest-dir=""  --extout=".ext"  --ext-build-dir="./ext"  --mflags="-l"  --make-flags="                  "  --data-mode=0644  --prog-mode=0755  --installed-list .installed.list  --mantype=""   --install=all --exclude=doc
 defaults:
