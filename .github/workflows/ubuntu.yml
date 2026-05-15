@@ -1,15 +1,15 @@
 name: Ubuntu
 on:
-  push:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - '**.rdoc'
-  pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - '**.md'
-      - '**.rdoc'
+  # push:
+  #   paths-ignore:
+  #     - 'doc/**'
+  #     - '**.md'
+  #     - '**.rdoc'
+  # pull_request:
+  #   paths-ignore:
+  #     - 'doc/**'
+  #     - '**.md'
+  #     - '**.rdoc'
   workflow_dispatch:
 
 concurrency:
