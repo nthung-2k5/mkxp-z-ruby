@@ -47,14 +47,14 @@ jobs:
       - run: ./autogen.sh
         working-directory: src
       - name: Run configure
-        run: ../src/configure -C --disable-install-doc --disable-install-bin --enable-install-static-library --with-out-ext=openssl,readline,dbm,gdbm,win32ole --with-static-linked-ext --disable-rubygems --without-gmp
+        run: ../src/configure -C --disable-install-doc --disable-install-bin --enable-install-static-library --with-out-ext=openssl,readline,dbm,gdbm,win32ole --with-static-linked-ext --disable-rubygems --without-gmp --with-opt-dir=$(brew --prefix libffi) --with-zlib-dir=$(brew --prefix zlib)
         env:
           CFLAGS: "-std=gnu99 -flto"
           LDFLAGS: "-flto"
       - run: make
       - name: make install
         run: |
-          make install-nodoc
+          make install-nodoc V=1
 
 defaults:
   run:
