@@ -93,7 +93,7 @@ jobs:
           --with-static-linked-ext
           --disable-rubygems
           --without-gmp
-      - run: make -j8
+      - run: make
       - name: make install
         run: |
           make install-nodoc

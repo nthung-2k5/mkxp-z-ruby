@@ -51,7 +51,7 @@ jobs:
         env:
           CFLAGS: "-std=gnu99 -flto"
           LDFLAGS: "-flto"
-      - run: make -j8
+      - run: make
       - name: make install
         run: |
           make install-nodoc

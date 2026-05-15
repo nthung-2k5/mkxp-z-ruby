@@ -88,6 +88,11 @@ jobs:
         run: |
           call %VCVARS% 10.0.22621.0
           nmake install
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ruby-windows
+          path: D:/usr/lib
+
 defaults:
   run:
     working-directory: build

@@ -107,7 +107,7 @@ jobs:
           --without-gmp
           --build=$CHOST --host=$CHOST --target=$CHOST
 
-      - run: make -j8
+      - run: make
       - name: make install
         run: |
           make install-nodoc
