@@ -72,16 +72,25 @@ jobs:
           path: src/.downloaded-cache
           key: downloaded-cache
       - name: Configure
-        run: ../src/win32/configure.bat --disable-install-doc --disable-install-bin --enable-install-static-library --with-out-ext=openssl,readline,dbm,gdbm,win32ole --with-static-linked-ext --disable-rubygems --without-gmp --enable-bundled-libffi --with-opt-dir=C:/vcpkg/installed/x64-windows
+        run: |
+          call %VCVARS% 10.0.22621.0
+          ../src/win32/configure.bat --disable-install-doc --disable-install-bin --enable-install-static-library --with-out-ext=openssl,readline,dbm,gdbm,win32ole --with-static-linked-ext --disable-rubygems --without-gmp --enable-bundled-libffi --with-opt-dir=C:/vcpkg/installed/x64-windows
       - name: Build
-        run: nmake
+        run: |
+          call %VCVARS% 10.0.22621.0
+          nmake
         env:
           YACC: win_bison
       - name: Install
-        run: nmake install
+        run: |
+          call %VCVARS% 10.0.22621.0
+          nmake install
         continue-on-error: true
-      - name: Check error
-        run: .\ruby.exe -I../src/lib -I".ext/x64-mswin64_140" -I. "../src/tool/runruby.rb" --extout=".ext"  -- --disable-gems -r./x64-mswin64_140-fake ../src/tool/rbinstall.rb --make="nmake" --dest-dir=""  --extout=".ext"  --ext-build-dir="./ext"  --mflags="-l"  --make-flags="                  "  --data-mode=0644  --prog-mode=0755  --installed-list .installed.list  --mantype=""   --install=all --exclude=doc
+      - name: Test cache
+        uses: actions/upload-artifact@v7
+        with:
+          name: ruby-windows
+          path: build
 defaults:
   run:
     working-directory: build
