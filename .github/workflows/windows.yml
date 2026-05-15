@@ -91,7 +91,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: ruby-windows
-          path: D:/usr/lib
+          path: D:/usr
 
 defaults:
   run:
