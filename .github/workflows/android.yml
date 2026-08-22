@@ -86,6 +86,7 @@ jobs:
         run: >-
           ../src/configure -C --disable-install-doc
           --disable-install-bin
+          --enable-shared
           --prefix="${HOME}/ruby"
           --host=${{ matrix.abi }}${{ matrix.api_level }}
           --enable-install-static-library
