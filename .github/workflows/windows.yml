@@ -24,9 +24,11 @@ jobs:
           - vs: 2022
             os: windows-2022
             vcvars: '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"'
-          # - vs: 2026
-          #   os: windows-2025-vs2026
-          #   vcvars: '"C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Auxiliary\Build\vcvars64.bat"'
+            sdk: "10.0.22621.0"
+          - vs: 2026
+            os: windows-2025-vs2026
+            vcvars: '"C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Auxiliary\Build\vcvars64.bat"'
+            sdk: "10.0.26100.0"
       fail-fast: false
     runs-on: ${{ matrix.os }}
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
@@ -73,11 +75,11 @@ jobs:
           key: downloaded-cache
       - name: Configure
         run: |
-          call %VCVARS% 10.0.22621.0
+          call %VCVARS% ${{ matrix.sdk }}
           ../src/win32/configure.bat --disable-install-doc --disable-install-bin --enable-install-static-library --with-out-ext=openssl,readline,dbm,gdbm,win32ole --with-static-linked-ext --disable-rubygems --without-gmp --enable-bundled-libffi --with-opt-dir=C:/vcpkg/installed/x64-windows
       - name: Build
         run: |
-          call %VCVARS% 10.0.22621.0
+          call %VCVARS% ${{ matrix.sdk }}
           nmake
         env:
           YACC: win_bison
@@ -86,14 +88,14 @@ jobs:
         run: Get-ChildItem "C:/vcpkg/installed/x64-windows/bin/*.dll" | Where-Object { $_.BaseName -ne "readline" } | ForEach-Object { Copy-Item $_.FullName -Destination "." -Force }
       - name: Install
         run: |
-          call %VCVARS% 10.0.22621.0
+          call %VCVARS% ${{ matrix.sdk }}
           nmake install
       - name: Copy to export directory
         shell: pwsh
         run: Copy-Item "C:/vcpkg/installed/x64-windows/bin/*.dll" -Destination "D:/usr/bin" -Force
       - uses: actions/upload-artifact@v7
         with:
-          name: ruby-windows
+          name: ruby-windows-vs${{ matrix.vs }}
           path: D:/usr
 
 defaults:
