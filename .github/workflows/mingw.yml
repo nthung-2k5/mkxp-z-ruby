@@ -23,12 +23,17 @@ jobs:
       MSYSTEM: UCRT64
       MSYS2_ARCH: x86_64
       CHOST: "x86_64-w64-mingw32"
-      CFLAGS:   "-march=x86-64 -mtune=generic -O3 -pipe -fstack-protector-strong -std=gnu99 -flto"
+      CFLAGS:   "-march=x86-64 -mtune=generic -O3 -pipe -fstack-protector-strong -std=gnu99 -flto=auto"
       CXXFLAGS: "-march=x86-64 -mtune=generic -O3 -pipe"
       CPPFLAGS: "-D_FORTIFY_SOURCE=2 -D__USE_MINGW_ANSI_STDIO=1 -DFD_SETSIZE=2048"
-      LDFLAGS:  "-flto -pipe -fstack-protector-strong"
+      LDFLAGS:  "-flto=auto -pipe -fstack-protector-strong"
       UPDATE_UNICODE: "UNICODE_FILES=. UNICODE_PROPERTY_FILES=. UNICODE_AUXILIARY_FILES=. UNICODE_EMOJI_FILES=."
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
+      CC: "ccache gcc"
+      CXX: "ccache g++"
+      CCACHE_DIR: "${{ github.workspace }}/.ccache"
+      CCACHE_COMPILERCHECK: content
+      CCACHE_SLOPPINESS: time_macros,include_file_mtime,file_macro
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
     steps:
       - run: mkdir -p build ${{ github.workspace }}/installed
@@ -46,21 +51,21 @@ jobs:
         with:
           path: src/.downloaded-cache
           key: downloaded-cache
-      # - name: setup MSYS2
-      #   uses: msys2/setup-msys2@v2
-      #   with:
-      #     msystem: UCRT64
-      #     release: false
-      #     update: true
-      #     install: >-
-      #       mingw-w64-ucrt-x86_64-libyaml
-      #       mingw-w64-ucrt-x86_64-libffi
-      #       mingw-w64-ucrt-x86_64-ragel
-      #       mingw-w64-ucrt-x86_64-ruby
-      #       mingw-w64-ucrt-x86_64-gcc
-      #       mingw-w64-ucrt-x86_64-make
-      #       mingw-w64-ucrt-x86_64-bison
-      #       mingw-w64-ucrt-x86_64-nm
+      - uses: actions/cache@v5
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ runner.os }}-ccache-mingw
+      - name: setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          release: false
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-libyaml
+      - name: install ccache
+        run: |
+          choco install ccache
       - name: setup Ruby and MSYS2
         uses: ruby/setup-ruby@v1
         with:
@@ -72,7 +77,7 @@ jobs:
       - name: where check
         run: |
           result=true
-          for e in gcc.exe ragel.exe make.exe bison.exe nm.exe; do
+          for e in gcc.exe ragel.exe make.exe bison.exe nm.exe ccache.exe; do
             echo '##['group']'$'\033[93m'$e$'\033[m'
             where $e || result=false
             echo '##['endgroup']'
@@ -83,7 +88,7 @@ jobs:
         run: |
           # show version
           result=true
-          for e in gcc ragel make bison nm; do
+          for e in gcc ragel make bison nm ccache; do
             case "$e" in *" "*) ;; *) e="$e --version";; esac
             echo '##['group']'$'\033[93m'$e$'\033[m'
             $e || result=false
@@ -98,8 +103,7 @@ jobs:
 
       - name: configure
         run: >
-          ../src/configure --disable-install-doc --prefix="${{ github.workspace }}/installed"
-          --disable-install-bin
+          ../src/configure -C --disable-install-doc --prefix="${{ github.workspace }}/installed"
           --enable-install-static-library
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
           --with-static-linked-ext
@@ -111,6 +115,12 @@ jobs:
       - name: make install
         run: |
           make install-nodoc
+      - name: log ccache stats
+        run: |
+          ccache --show-stats
+      - name: copy libyaml
+        run: |
+          cp C:/msys64/ucrt64/bin/libyaml-0-2.dll "${{ github.workspace }}/installed/bin"
       - uses: actions/upload-artifact@v7
         with:
           name: ruby-mingw

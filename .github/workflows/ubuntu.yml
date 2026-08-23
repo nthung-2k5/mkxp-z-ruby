@@ -20,6 +20,7 @@ jobs:
   make:
     env:
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
+      CCACHE_DIR: "~/.ccache"
     runs-on: ubuntu-24.04
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
     steps:
@@ -36,7 +37,7 @@ jobs:
           ${arch:+cross}build-essential${arch/:/-} \
           libssl-dev${arch} libyaml-dev${arch} \
           zlib1g-dev${arch} libncurses5-dev${arch} libffi-dev${arch} \
-          bison autoconf ruby
+          bison autoconf ruby ccache
           sudo apt-get install -q -y pkg-config${arch} || :
       - name: git config
         run: |
@@ -49,6 +50,10 @@ jobs:
         with:
           path: src/.downloaded-cache
           key: downloaded-cache
+      - uses: actions/cache@v5
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-ubuntu
       - name: Fixed world writable dirs
         run: |
           chmod -v go-w $HOME $HOME/.config
@@ -62,8 +67,10 @@ jobs:
       - name: Run configure
         env:
           arch: ${{matrix.arch}}
-          CFLAGS: "-std=gnu99 -flto"
-          LDFLAGS: "-flto"
+          CFLAGS: "-std=gnu99 -flto=auto"
+          LDFLAGS: "-flto=auto"
+          CC: "ccache gcc"
+          CXX: "ccache g++"
         run: >-
           ../src/configure -C --disable-install-doc
           --prefix="${HOME}/ruby"

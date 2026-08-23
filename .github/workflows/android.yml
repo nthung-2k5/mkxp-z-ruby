@@ -36,6 +36,7 @@ jobs:
       fail-fast: false
     env:
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
+      CCACHE_DIR: "~/.ccache"
     runs-on: ubuntu-24.04
     name: ${{ matrix.name }}
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
@@ -56,7 +57,7 @@ jobs:
             build-essential \
             libssl-dev libyaml-dev \
             zlib1g-dev libncurses5-dev libffi-dev \
-            bison autoconf ruby
+            bison autoconf ruby ccache
       - name: git config
         run: |
           git config --global advice.detachedHead 0
@@ -68,6 +69,10 @@ jobs:
         with:
           path: src/.downloaded-cache
           key: downloaded-cache
+      - uses: actions/cache@v5
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-android-${{ matrix.abi }}
       - run: export libdir="${HOME}/ruby/lib"
       - name: Change permissions
         run: |
@@ -84,8 +89,10 @@ jobs:
           LIBDIR: "${HOME}/ruby/lib"
       - name: Run configure
         env:
-          CFLAGS: "-std=gnu99 -O3 -flto"
-          LDFLAGS: "-flto"
+          CFLAGS: "-std=gnu99 -O3 -flto=auto"
+          LDFLAGS: "-flto=auto"
+          CC: "ccache ${{ matrix.abi }}${{ matrix.api_level }}-clang"
+          CXX: "ccache ${{ matrix.abi }}${{ matrix.api_level }}-clang++"
         run: >-
           ../src/configure -C --disable-install-doc
           --disable-install-bin

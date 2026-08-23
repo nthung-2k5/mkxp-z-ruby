@@ -20,6 +20,7 @@ jobs:
   make:
     env:
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
+      CCACHE_DIR: "~/.ccache"
     runs-on: macos-latest
     if: ${{ !contains(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
     steps:
@@ -36,10 +37,14 @@ jobs:
         with:
           path: src/.downloaded-cache
           key: downloaded-cache
+      - uses: actions/cache@v5
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-macos
       - name: Install libraries
         run: |
           brew upgrade
-          brew install libffi zlib autoconf automake libtool
+          brew install libffi zlib autoconf automake libtool ccache
         working-directory: src
       - name: Set ENV
         run: |
@@ -49,8 +54,10 @@ jobs:
       - name: Run configure
         run: ../src/configure -C --disable-install-doc --disable-install-bin --enable-install-static-library --with-out-ext=openssl,readline,dbm,gdbm,win32ole --with-static-linked-ext --disable-rubygems --without-gmp --with-opt-dir=$(brew --prefix libffi) --with-zlib-dir=$(brew --prefix zlib)
         env:
-          CFLAGS: "-std=gnu99 -flto"
-          LDFLAGS: "-flto"
+          CFLAGS: "-std=gnu99 -flto=auto"
+          LDFLAGS: "-flto=auto"
+          CC: "ccache clang"
+          CXX: "ccache clang++"
       - run: make
       - name: make install
         run: |

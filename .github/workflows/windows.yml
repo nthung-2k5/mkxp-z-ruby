@@ -40,20 +40,20 @@ jobs:
       - uses: actions/cache@v5
         with:
           path: C:\vcpkg\downloads
-          key: ${{ runner.os }}-vcpkg-download-${{ matrix.os }}-${{ github.sha }}
+          key: ${{ runner.os }}-vcpkg-download-${{ matrix.os }}
+      - uses: actions/cache@v5
+        with:
+          path: C:\vcpkg\installed
+          key: ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}-zlib
           restore-keys: |
-            ${{ runner.os }}-vcpkg-download-${{ matrix.os }}-
-            ${{ runner.os }}-vcpkg-download-
+            ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}-
       - name: Install libraries with vcpkg
         run: |
           vcpkg --triplet x64-windows install zlib
       - uses: actions/cache@v5
         with:
           path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
-          key: ${{ runner.os }}-chocolatey-${{ matrix.os }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-chocolatey-${{ matrix.os }}-
-            ${{ runner.os }}-chocolatey-
+          key: ${{ runner.os }}-chocolatey-${{ matrix.os }}
       - name: Install libraries with chocolatey
         uses: crazy-max/ghaction-chocolatey@v4
         with:
@@ -88,6 +88,9 @@ jobs:
         run: |
           call %VCVARS% 10.0.22621.0
           nmake install
+      - name: Copy to export directory
+        shell: pwsh
+        run: Copy-Item "C:/vcpkg/installed/x64-windows/bin/*.dll" -Destination "D:/usr/bin" -Force
       - uses: actions/upload-artifact@v7
         with:
           name: ruby-windows
