@@ -73,7 +73,7 @@ jobs:
         with:
           path: ~/.ccache
           key: ${{ runner.os }}-ccache-android-${{ matrix.abi }}
-      - run: export libdir="${HOME}/ruby/lib"
+      - run: export libdir="${{ github.workspace }}/installed/lib"
       - name: Change permissions
         run: |
           sudo chmod -R 777 /var/lib
@@ -86,18 +86,21 @@ jobs:
       - run: ./autogen.sh
         working-directory: src
         env:
-          LIBDIR: "${HOME}/ruby/lib"
+          LIBDIR: "${{ github.workspace }}/installed/lib"
       - name: Run configure
         env:
           CFLAGS: "-std=gnu99 -O3 -flto=auto"
-          LDFLAGS: "-flto=auto"
+          LDFLAGS: "-flto=auto -fuse-ld=lld"
+          AR: "llvm-ar"
+          NM: "llvm-nm"
+          RANLIB: "llvm-ranlib"
           CC: "ccache ${{ matrix.abi }}${{ matrix.api_level }}-clang"
           CXX: "ccache ${{ matrix.abi }}${{ matrix.api_level }}-clang++"
         run: >-
           ../src/configure -C --disable-install-doc
           --disable-install-bin
           --enable-shared
-          --prefix="${HOME}/ruby"
+          --prefix="${{ github.workspace }}/installed"
           --host=${{ matrix.abi }}${{ matrix.api_level }}
           --enable-install-static-library
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
@@ -108,14 +111,88 @@ jobs:
       - name: make install
         run: |
           make install-nodoc
+      - name: Delete useless ruby executable
+        run: rm -f ${{ github.workspace }}/installed/bin/ruby
+      - name: Create bash mock wrapper for FindRuby.cmake
+        uses: step-security/create-a-file-action@v0
+        with:
+          path: ${{ github.workspace }}/installed/bin
+          isAbsolutePath: true
+          file: 'ruby'
+          content: |
+            RUBY_PATH=$(readlink -f "$0/..")
+            if [[ "$*" == *"'MAJOR'"* ]]; then
+                echo -n "3"
+            if [[ "$*" == *"'MINOR'"* ]]; then
+                echo -n "1"
+            if [[ "$*" == *"'TEENY'"* ]]; then
+                echo -n "3"
+            elif [[ "$*" == *"'arch'"* ]]; then
+                echo -n "aarch64-linux-android26-android"
+            elif [[ "$*" == *"'archdir'"* ]]; then
+                echo -n "${RUBY_PATH}/lib/ruby/3.1.0/aarch64-linux-android26-android"
+            elif [[ "$*" == *"'DLEXT'"* ]]; then
+                echo -n "so"
+            elif [[ "$*" == *"'rubyhdrdir'"* ]]; then
+                echo -n "${RUBY_PATH}/include/ruby-3.1.0"
+            elif [[ "$*" == *"'rubyarchhdrdir'"* ]]; then
+                echo -n "${RUBY_PATH}/include/ruby-3.1.0/aarch64-linux-android26-android"
+            elif [[ "$*" == *"'libdir'"* ]]; then
+                echo -n "${RUBY_PATH}/lib"
+            elif [[ "$*" == *"'RUBY_SO_NAME'"* ]]; then
+                echo -n "ruby"
+            elif [[ "$*" == *"'vendorarchdir'"* ]]; then
+                echo -n "false"
+            fi
+      - name: Make bash mock wrapper executable
+        run: chmod +x ${{ github.workspace }}/installed/bin/ruby
+      - name: Create .bat mock wrapper for FindRuby.cmake
+        uses: step-security/create-a-file-action@v0
+        with:
+          path: ${{ github.workspace }}/installed/bin
+          isAbsolutePath: true
+          file: 'ruby.bat'
+          content: |
+            @echo off
+            setlocal enabledelayedexpansion
+
+            for %%I in ("%~dp0..") do set "RUBY_PATH_RAW=%%~fI"
+            set "RUBY_PATH=!RUBY_PATH_RAW:\=/!"
+
+            set "ARGS=%*"
+
+            if not "!ARGS:'MAJOR'=!" == "!ARGS!" (
+                <nul set /p ="3"
+            ) else if not "!ARGS:'MINOR'=!" == "!ARGS!" (
+                <nul set /p ="1"
+            ) else if not "!ARGS:'TEENY'=!" == "!ARGS!" (
+                <nul set /p ="3"
+            ) else if not "!ARGS:'arch'=!" == "!ARGS!" (
+                <nul set /p ="x86_64-linux-android26-android"
+            ) else if not "!ARGS:'archdir'=!" == "!ARGS!" (
+                <nul set /p ="!RUBY_PATH!/lib/ruby/3.1.0/x86_64-linux-android26-android"
+            ) else if not "!ARGS:'DLEXT'=!" == "!ARGS!" (
+                <nul set /p ="so"
+            ) else if not "!ARGS:'rubyhdrdir'=!" == "!ARGS!" (
+                <nul set /p ="!RUBY_PATH!/include/ruby-3.1.0"
+            ) else if not "!ARGS:'rubyarchhdrdir'=!" == "!ARGS!" (
+                <nul set /p ="!RUBY_PATH!/include/ruby-3.1.0/x86_64-linux-android26-android"
+            ) else if not "!ARGS:'libdir'=!" == "!ARGS!" (
+                <nul set /p ="!RUBY_PATH!/lib"
+            ) else if not "!ARGS:'RUBY_SO_NAME'=!" == "!ARGS!" (
+                <nul set /p ="ruby"
+            ) else if not "!ARGS:'vendorarchdir'=!" == "!ARGS!" (
+                <nul set /p ="false"
+            )
+            endlocal
       - name: Create artifacts
         run: |
-          mkdir -p ${HOME}/ruby/lib/ruby/gems/3.1.0/
-          cp -r /var/lib/gems/3.1.0/ ${HOME}/ruby/lib/ruby/gems/3.1.0/
+          mkdir -p ${{ github.workspace }}/installed/lib/ruby/gems/3.1.0/
+          cp -r /var/lib/gems/3.1.0/ ${{ github.workspace }}/installed/lib/ruby/gems/3.1.0/
       - uses: actions/upload-artifact@v7
         with:
           name: ruby-android-${{ matrix.abi }}
-          path: ~/ruby
+          path: ${{ github.workspace }}/installed
 
 defaults:
   run:
