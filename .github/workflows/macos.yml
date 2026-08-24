@@ -20,11 +20,11 @@ jobs:
   make:
     env:
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
-      CCACHE_DIR: "~/.ccache"
+      CCACHE_DIR: "${{ github.workspace }}/.ccache"
     runs-on: macos-latest
     if: ${{ !contains(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
     steps:
-      - run: mkdir build
+      - run: mkdir -p build $HOME/ruby
         working-directory:
       - name: git config
         run: |
@@ -39,7 +39,7 @@ jobs:
           key: downloaded-cache
       - uses: actions/cache@v5
         with:
-          path: ~/.ccache
+          path: ${{ github.workspace }}/.ccache
           key: ${{ runner.os }}-ccache-macos
       - name: Install libraries
         run: |
@@ -52,16 +52,28 @@ jobs:
       - run: ./autogen.sh
         working-directory: src
       - name: Run configure
-        run: ../src/configure -C --disable-install-doc --disable-install-bin --enable-install-static-library --with-out-ext=openssl,readline,dbm,gdbm,win32ole --with-static-linked-ext --disable-rubygems --without-gmp --with-opt-dir=$(brew --prefix libffi) --with-zlib-dir=$(brew --prefix zlib)
+        run: >-
+          ../src/configure -C --enable-shared --disable-install-doc
+          --prefix="${HOME}/ruby"
+          --enable-install-static-library
+          --with-out-ext=openssl,readline,dbm,gdbm,win32ole
+          --with-static-linked-ext
+          --disable-rubygems
+          --without-gmp
+          --with-opt-dir=$(brew --prefix libffi)
+          --with-zlib-dir=$(brew --prefix zlib)
         env:
           CFLAGS: "-std=gnu99 -flto=auto"
           LDFLAGS: "-flto=auto"
           CC: "ccache clang"
           CXX: "ccache clang++"
+      - run: make miniruby
       - run: make
-      - name: make install
-        run: |
-          make install-nodoc V=1
+      - run: make install-nodoc
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ruby-macos
+          path: ~/ruby
 
 defaults:
   run:
