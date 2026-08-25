@@ -72,7 +72,7 @@ jobs:
           ruby-version: '3.1.3'
       - name: set env
         run: |
-          echo "GNUMAKEFLAGS=-j$((2 * NUMBER_OF_PROCESSORS))" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$((2 * NUMBER_OF_PROCESSORS))" >> $GITHUB_ENV
 
       - name: where check
         run: |
@@ -102,15 +102,15 @@ jobs:
         working-directory: src
 
       - name: configure
-        run: >
-          ../src/configure -C --disable-install-doc --prefix="${{ github.workspace }}/installed"
+        run: >-
+          ../src/configure -C --disable-install-doc
+          --prefix="${{ github.workspace }}/installed"
           --enable-install-static-library
           --with-out-ext=openssl,readline,dbm,gdbm,win32ole
           --with-static-linked-ext
           --disable-rubygems
           --without-gmp
           --build=$CHOST --host=$CHOST --target=$CHOST
-
       - run: make
       - name: make install
         run: |

@@ -36,7 +36,7 @@ jobs:
       fail-fast: false
     env:
       GITPULLOPTIONS: --no-tags origin ${{github.ref}}
-      CCACHE_DIR: "~/.ccache"
+      CCACHE_DIR: "${{ github.workspace }}/.ccache"
     runs-on: ubuntu-24.04
     name: ${{ matrix.name }}
     if: ${{ !startsWith(github.event.head_commit.message, '[DOC]') && !contains(github.event.pull_request.labels.*.name, 'Documentation') }}
@@ -45,7 +45,7 @@ jobs:
         working-directory:
       - name: Set ENV
         run: |
-          echo "GNUMAKEFLAGS=-j$((1 + $(nproc --all)))" >> $GITHUB_ENV
+          echo "MAKEFLAGS=-j$((1 + $(nproc --all)))" >> $GITHUB_ENV
           echo "ANDROID_NDK_ROOT=${ANDROID_NDK_LATEST_HOME}" >> $GITHUB_ENV
           echo "ANDROID_NDK_HOME=${ANDROID_NDK_LATEST_HOME}" >> $GITHUB_ENV
           echo "ANDROID_NDK=${ANDROID_NDK_LATEST_HOME}" >> $GITHUB_ENV
@@ -71,7 +71,7 @@ jobs:
           key: downloaded-cache
       - uses: actions/cache@v5
         with:
-          path: ~/.ccache
+          path: ${{ github.workspace }}/.ccache
           key: ${{ runner.os }}-ccache-android-${{ matrix.abi }}
       - run: export libdir="${{ github.workspace }}/installed/lib"
       - name: Change permissions
